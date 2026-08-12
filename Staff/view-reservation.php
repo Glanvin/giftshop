@@ -24,7 +24,7 @@ if (!$res) {
 
 // Fetch items
 $items = mysqli_query($con,
-    "SELECT ri.quantity, ri.price_at_time AS price, ri.size,
+    "SELECT ri.quantity, ri.price_at_time AS price,
             p.name AS product_name, p.image_url, p.sku
      FROM reservation_items ri
      JOIN products p ON ri.product_id = p.id
