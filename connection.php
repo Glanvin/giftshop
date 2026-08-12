@@ -7,10 +7,10 @@ $dbname = "db_CUGiftshop";
 
 $con = mysqli_connect($servername, $username, $password, $dbname);
 
-if ($con) {
-	echo "connection was established";
-} else {
-	echo "error";
-}
+// if ($con) {
+// 	echo "connection was established";
+// } else {
+// 	echo "error";
+// }
 
 ?>
