@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/backend/product/product-controller.php';
+require __DIR__ . '/../backend/user/product-detail-controller.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -9,49 +9,26 @@ require __DIR__ . '/backend/product/product-controller.php';
     <title><?php echo htmlspecialchars($product['name']); ?> – CU Giftshop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/style.css">
 </head>
-<body class="area-public">
-
-    <nav class="navbar navbar-expand-sm customnav">
-        <div class="navbar-nav">
-            <div class="d-flex align-items-center">
-                <img src="product-images/culogo.jpg" class="rounded-circle logo-gold-outline" alt="Logo">
-                <div class="brand-text">
-                    <h1>Capitol University</h1>
-                    <span>Official Giftshop</span>
-                </div>
-            </div>
-            <div class="center-links">
-                <li class="nav-item">
-                    <a class="nav-link" href="index.php">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="indexshop.php">Shop</a>
-                </li>
-            </div>
-            <div class="d-flex gap-2">
-                <a href="login.php" class="btn btn-login btn-sm">Login</a>
-                <a href="signup.php" class="btn btn-logins btn-sm">Sign Up</a>
-            </div>
-        </div>
-    </nav>
+<body class="area-user">
+    <?php include('../includes/header.php'); ?>
 
     <div class="page-wrap">
 
-        <a href="indexshop.php" class="btn-back">
+        <a href="Shopuser.php" class="btn-back mb-4 d-inline-flex">
             <i class="bi bi-arrow-left"></i> Back to Shop
         </a>
 
         <div class="row g-4">
 
-            <!-- Image -->
+            <!-- product image -->
             <div class="col-md-5">
                 <div class="img-box">
-                    <?php if ($imgUrl): ?>
-                        <img src="<?php echo htmlspecialchars($imgUrl); ?>"
-                             alt="<?php echo htmlspecialchars($product['name']); ?>">
+                    <?php if ($product['image_url']): ?>
+                        <!-- ../  goes up from User/ to giftshop/ where product-images/ lives -->
+                        <img src="../<?php echo htmlspecialchars(str_replace('Product-Images', 'product-images', $product['image_url'])); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
                     <?php else: ?>
                         <div class="no-image">
                             <i class="bi bi-image"></i>
@@ -61,19 +38,21 @@ require __DIR__ . '/backend/product/product-controller.php';
                 </div>
             </div>
 
-            <!-- Information -->
+            <!-- product info -->
             <div class="col-md-7">
                 <div class="info-card">
 
-                    <!-- Category and Stock -->
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <span class="cat-badge">
                             <i class="bi bi-tag me-1"></i>
                             <?php echo htmlspecialchars($product['category_name'] ?? 'General'); ?>
                         </span>
-                        <?php if ($stock <= 0): ?>
+                        <?php
+                        $stock = (int) $product['stock_quantity'];
+                        if ($stock <= 0):
+                        ?>
                             <span class="stock-out"><i class="bi bi-x-circle me-1"></i>Out of Stock</span>
-                        <?php elseif ($stock <= 5): ?>
+                        <?php elseif ($stock <= 10): ?>
                             <span class="stock-low"><i class="bi bi-exclamation-triangle me-1"></i>Only <?php echo $stock; ?> left!</span>
                         <?php else: ?>
                             <span class="stock-ok"><i class="bi bi-check-circle me-1"></i><?php echo $stock; ?> Available</span>
@@ -92,7 +71,7 @@ require __DIR__ . '/backend/product/product-controller.php';
                         </div>
                     </div>
 
-                    <!-- Details -->
+                    <!-- Product Details -->
                     <div class="mb-3">
                         <?php if ($product['size']): ?>
                         <div class="detail-item">
@@ -114,28 +93,39 @@ require __DIR__ . '/backend/product/product-controller.php';
                         <?php endif; ?>
                     </div>
 
-                    <!-- Login to Reserve -->
+                    <!-- Add to Cart Form -->
                     <?php if ($stock > 0): ?>
-                    <div class="cta-box">
-                        <div>
-                            <strong><i class="bi bi-lock me-2"></i>Want to reserve this item?</strong>
-                            <p>Log in to your account to add this to your cart and place a reservation.</p>
+                    <form method="POST" action="cart.php">
+                        <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                        <input type="hidden" name="quantity"   id="qty-value" value="1">
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small text-uppercase">
+                                <i class="bi bi-hash me-1"></i> Quantity
+                            </label>
+                            <div class="qty-wrap" data-max="<?php echo $maxStock; ?>">
+                                <button type="button" class="qty-btn" onclick="changeQty(-1)">−</button>
+                                <span class="qty-num" id="qty-display">1</span>
+                                <button type="button" class="qty-btn" onclick="changeQty(1)">+</button>
+                                <span class="text-muted small">/ <?php echo $stock; ?> available</span>
+                            </div>
                         </div>
-                        <a href="login.php" class="btn-cta">
-                            <i class="bi bi-box-arrow-in-right me-1"></i> Log In to Reserve
-                        </a>
-                    </div>
+
+                        <button type="submit" name="add_to_cart" class="btn-cart">
+                            <i class="bi bi-cart-plus me-2"></i> Add to Cart
+                        </button>
+                    </form>
                     <?php else: ?>
-                    <div style="background:#fce4ec; border-radius:10px; padding:16px 20px; margin-top:16px; color:#ad1457; font-weight:600;">
-                        <i class="bi bi-x-circle me-2"></i> This item is currently out of stock.
-                    </div>
+                        <div class="alert alert-danger mt-3">
+                            <i class="bi bi-x-circle me-2"></i> This item is currently out of stock.
+                        </div>
                     <?php endif; ?>
 
                 </div>
             </div>
         </div>
 
-        <!-- Description -->
+        <!-- Description  -->
         <?php if ($product['description']): ?>
         <div class="desc-card">
             <h3 class="desc-title"><i class="bi bi-card-text me-2"></i>Product Description</h3>
@@ -146,9 +136,8 @@ require __DIR__ . '/backend/product/product-controller.php';
         <?php endif; ?>
 
     </div>
+    <?php include('../includes/footer.php'); ?>
 
-    <!-- footer -->
-    <?php include('includes/footer.php'); ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

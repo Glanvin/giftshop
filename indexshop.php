@@ -1,472 +1,23 @@
 <?php
-include('connection.php');
-// Get search, category, and sort from URL
-$search   = $_GET['search']   ?? '';
-$category = $_GET['category'] ?? '';
-$sort     = $_GET['sort']     ?? 'az';
-
-// basing from query and selects all active products and their category
-$query = "SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active'";
-// search conditions
-if ($search) {
-    $s = mysqli_real_escape_string($con, $search);
-    $query .= " AND (p.name LIKE '%$s%' OR p.description LIKE '%$s%')";
-}
-// can filter by category
-if ($category && $category != "All Categories") {
-    $cat = mysqli_real_escape_string($con, $category);
-    $query .= " AND p.category_id = '$cat'";
-}
-// Apply sorting based on user selection
-switch ($sort) {
-    case "za":   $query .= " ORDER BY p.name DESC"; break;
-    case "low":  $query .= " ORDER BY p.price ASC"; break;
-    case "high": $query .= " ORDER BY p.price DESC"; break;
-    default:     $query .= " ORDER BY p.name ASC";
-}
-// execute query
-$result     = mysqli_query($con, $query);
-// Define category names
-$categories = [1 => "Textbook", 2 => "Uniform", 3 => "PE Uniform", 4 => "Merchandise"];
+require __DIR__ . '/backend/product/shop-controller.php';
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Shop – CU Giftshop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
- <style>
-    body { 
-        margin: 0; 
-        font-family: 'Poppins', sans-serif; 
-        background: #faf9f6; 
-    }
-
-    .custombg, .navbar, .shopcateg, .featuredproducts {
-        padding-left: 180px;
-        padding-right: 180px;
-    }
-
-    .custombg { 
-        background-color: #6d1223; 
-        color: white; 
-        padding-top: 10px; 
-        padding-bottom: 10px; 
-    }
-
-    .toptext { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        font-size: 18px; 
-    }
-
-    .left-info { 
-        display: flex; 
-        gap: 30px; 
-    }
-
-    p { 
-        margin: 0; 
-    }
-
-    .navbar-nav { 
-        width: 100%; 
-        height: 40px; 
-        display: flex; 
-        align-items: center; 
-        margin: 5px 0; 
-    }
-
-    .logo-gold-outline { 
-        height: 60px; 
-        width: 60px; 
-        object-fit: cover; 
-        border: 3px solid #d4af37; 
-        border-radius: 50%; 
-    }
-
-    .customnav { 
-        background-color: #7f1429; 
-    }
-
-    .nav-link { 
-        color: white !important; 
-    }
-
-    .center-links { 
-        display: flex; 
-        gap: 30px; 
-        margin-left: auto; 
-        margin-right: auto; 
-        padding-right: 190px; 
-    }
-
-    li { 
-        font-size: 20px; 
-        font-weight: bold; 
-        list-style: none; 
-    }
-
-    .brand-text { 
-        color: white; 
-        margin-left: 10px; 
-    }
-
-    .brand-text h1 { 
-        font-family: "Times New Roman", Times, serif; 
-        font-size: 26px; 
-        margin: 0; 
-        font-weight: bold; 
-        line-height: 1; 
-    }
-
-    .brand-text span { 
-        font-family: Arial, Helvetica, sans-serif; 
-        font-size: 11px; 
-        display: block; 
-        text-transform: uppercase; 
-        letter-spacing: 2px; 
-        margin-top: 2px; 
-    }
-
-    .btn-login { 
-        color: white; 
-        border: 1px solid white; 
-        padding: 10px 30px; 
-        font-size: 12px; 
-        font-weight: bold; 
-        border-radius: 5px; 
-        background: transparent; 
-        text-decoration: none; 
-    }
-
-    .btn-login:hover { 
-        background: rgba(255,255,255,0.15); 
-        color: white; 
-    }
-
-    .btn-logins { 
-        background-color: #d4af37; 
-        color: #333; 
-        border: none; 
-        padding: 10px 30px; 
-        font-size: 12px; 
-        font-weight: bold; 
-        border-radius: 5px; 
-        text-decoration: none; 
-    }
-
-    .btn-logins:hover { 
-        background: #c9a030; 
-        color: #333; 
-    }
-
-    .page-wrap { 
-        padding: 50px 180px; 
-    }
-
-    .page-title { 
-        font-family: 'Playfair Display', serif; 
-        color: #6d1223; 
-        font-size: 40px; 
-        letter-spacing: -1px; 
-    }
-
-    .search-box { 
-        background: white; 
-        padding: 25px 30px; 
-        border-radius: 14px; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.06); 
-        margin-bottom: 35px; 
-    }
-
-    .form-control, .form-select { 
-        border-radius: 8px; 
-        padding: 10px 14px; 
-        border: 1px solid #ddd; 
-        font-size: 14px; 
-    }
-
-    .form-control:focus, .form-select:focus { 
-        border-color: #6d1223; 
-        box-shadow: none; 
-    }
-
-    .btn-maroon { 
-        background: #6d1223 !important; 
-        color: white !important; 
-        border: none; 
-        border-radius: 8px; 
-    }
-
-    .btn-maroon:hover { 
-        background: #4d0d19 !important; 
-    }
-
-    .product-card { 
-        background: white; 
-        border-radius: 16px; 
-        overflow: hidden; 
-        border: none; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.07); 
-        transition: transform 0.25s, box-shadow 0.25s; 
-        display: flex; 
-        flex-direction: column; 
-        height: 100%; 
-    }
-
-    .product-card:hover { 
-        transform: translateY(-6px); 
-        box-shadow: 0 12px 30px rgba(109,18,35,0.15); 
-    }
-
-    .card-img-wrap { 
-        position: relative; 
-        height: 220px; 
-        background: #f7f4f0; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        overflow: hidden; 
-    }
-
-    .card-img-wrap img { 
-        width: 100%; 
-        height: 100%; 
-        object-fit: cover; 
-        transition: transform 0.4s; 
-    }
-
-    .product-card:hover .card-img-wrap img { 
-        transform: scale(1.05); 
-    }
-
-    .no-img { 
-        color: #ddd; 
-        font-size: 60px; 
-    }
-
-    .cat-ribbon { 
-        position: absolute; 
-        top: 14px; 
-        left: 0; 
-        background: #6d1223; 
-        color: white; 
-        font-size: 11px; 
-        font-weight: 700; 
-        text-transform: uppercase; 
-        letter-spacing: 1px; 
-        padding: 4px 14px 4px 10px; 
-        border-radius: 0 20px 20px 0; 
-    }
-
-    .stock-badge { 
-        position: absolute; 
-        top: 14px; 
-        right: 14px; 
-        font-size: 11px; 
-        font-weight: 700; 
-        padding: 4px 10px; 
-        border-radius: 20px; 
-    }
-
-    .stock-ok { 
-        background: #e8f5e9; 
-        color: #2e7d32; 
-    }
-
-    .stock-low { 
-        background: #fff3e0; 
-        color: #e65100; 
-    }
-
-    .stock-out { 
-        background: #fce4ec; 
-        color: #ad1457; 
-    }
-
-    .card-body-custom { 
-        padding: 18px 20px; 
-        flex-grow: 1; 
-        display: flex; 
-        flex-direction: column; 
-    }
-
-    .product-name { 
-        font-family: 'Playfair Display', serif; 
-        font-size: 17px; 
-        color: #6d1223; 
-        font-weight: 700; 
-        margin-bottom: 5px; 
-        line-height: 1.3; 
-    }
-
-    .product-desc { 
-        font-size: 12px; 
-        color: #999; 
-        margin-bottom: 10px; 
-        display: -webkit-box; 
-        -webkit-line-clamp: 2; 
-        -webkit-box-orient: vertical; 
-        overflow: hidden; 
-        flex-grow: 1; 
-    }
-
-    .product-price { 
-        font-size: 22px; 
-        font-weight: 900; 
-        color: #b02038; 
-        margin-bottom: 4px; 
-    }
-
-    .product-stock-text { 
-        font-size: 12px; 
-        color: #aaa; 
-        margin-bottom: 14px; 
-    }
-
-    .card-actions { 
-        display: flex; 
-        gap: 8px; 
-    }
-
-    .btn-view { 
-        flex: 1; 
-        background: transparent; 
-        border: 2px solid #6d1223; 
-        color: #6d1223; 
-        border-radius: 8px; 
-        padding: 9px; 
-        font-weight: 700; 
-        font-size: 13px; 
-        text-align: center; 
-        text-decoration: none; 
-        transition: 0.2s; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        gap: 5px; 
-    }
-
-    .btn-view:hover { 
-        background: #6d1223; 
-        color: white; 
-    }
-
-    .btn-reserve { 
-        flex: 2; 
-        background: #6d1223; 
-        border: none; 
-        color: white; 
-        border-radius: 8px; 
-        padding: 9px; 
-        font-weight: 700; 
-        font-size: 13px; 
-        text-decoration: none; 
-        transition: 0.2s; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        gap: 5px; 
-    }
-
-    .btn-reserve:hover { 
-        background: #4d0d19; 
-        color: white; 
-    }
-
-    .btn-disabled { 
-        flex: 2; 
-        background: #eee; 
-        border: none; 
-        color: #aaa; 
-        border-radius: 8px; 
-        padding: 9px; 
-        font-size: 13px; 
-        cursor: not-allowed; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        gap: 5px; 
-    }
-
-    .reserve-banner { 
-        background: #6d1223; 
-        color: white; 
-        padding: 16px 24px; 
-        border-radius: 12px; 
-        margin-bottom: 30px; 
-        display: flex; 
-        align-items: center; 
-        justify-content: space-between; 
-        gap: 20px; 
-    }
-
-    .reserve-banner p { 
-        margin: 0; 
-        font-size: 14px; 
-    }
-
-    .reserve-banner a { 
-        background: #d4af37; 
-        color: #333; 
-        font-weight: 700; 
-        padding: 9px 25px; 
-        border-radius: 20px; 
-        text-decoration: none; 
-        font-size: 13px; 
-        white-space: nowrap; 
-    }
-
-    .reserve-banner a:hover { 
-        background: #c9a030; 
-    }
-
-    .results-bar { 
-        font-size: 14px; 
-        color: #888; 
-        margin-bottom: 20px; 
-    }
-
-    .results-bar span { 
-        color: #6d1223; 
-        font-weight: 700; 
-    }
-
-    @media (max-width: 1200px) { 
-        .custombg, .navbar, .page-wrap { 
-            padding-left: 20px; 
-            padding-right: 20px; 
-        } 
-        .center-links { 
-            padding-right: 0; 
-        } 
-    }
-</style>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body class="area-public">
 
-    <div class="custombg">
-        <div class="toptext">
-            <div class="left-info">
-                <p>✆ Support: 000-000-00000</p>
-                <p>🖂 support@cu.edu.ph</p>
-            </div>
-            <div class="schedule">
-                <p>⏱︎ Mon-Fri: 8:00 AM - 5:00 PM</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Navigation bar -->
     <nav class="navbar navbar-expand-sm customnav">
         <div class="navbar-nav">
             <div class="d-flex align-items-center">
-                <img src="Product-Images/culogo.jpg" class="rounded-circle logo-gold-outline" alt="Logo">
+                <img src="product-images/culogo.jpg" class="rounded-circle logo-gold-outline" alt="Logo">
                 <div class="brand-text">
                     <h1>Capitol University</h1>
                     <span>Official Giftshop</span>
@@ -474,14 +25,14 @@ $categories = [1 => "Textbook", 2 => "Uniform", 3 => "PE Uniform", 4 => "Merchan
             </div>
             <div class="center-links">
                 <li class="nav-item">
-                    <a class="nav-link" href="index.php">🏠︎ Home</a>
+                    <a class="nav-link" href="index.php">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="indexshop.php" style="border-bottom: 3px solid #d4af37; padding-bottom: 2px;">𖠩 Shop</a>
+                    <a class="nav-link" href="indexshop.php" style="border-bottom: 3px solid #d4af37; padding-bottom: 2px;">Shop</a>
                 </li>
             </div>
             <div class="d-flex gap-2">
-                <a href="login.php"  class="btn btn-login  btn-sm">Login</a>
+                <a href="login.php" class="btn btn-login btn-sm">Login</a>
                 <a href="signup.php" class="btn btn-logins btn-sm">Sign Up</a>
             </div>
         </div>
@@ -549,15 +100,16 @@ $categories = [1 => "Textbook", 2 => "Uniform", 3 => "PE Uniform", 4 => "Merchan
 
             <?php if (mysqli_num_rows($result) > 0): ?>
                 <?php while ($product = mysqli_fetch_assoc($result)):
-                    $stock = (int) $product['stock_quantity'];
+                    $stock  = (int) $product['stock_quantity'];
+                    $imgUrl = str_replace('Product-Images', 'product-images', (string) ($product['image_url'] ?? ''));
                 ?>
                 <div class="col">
                     <div class="product-card">
 
                         <!-- Image -->
                         <div class="card-img-wrap">
-                            <?php if ($product['image_url']): ?>
-                                <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="">
+                            <?php if ($imgUrl): ?>
+                                <img src="<?php echo htmlspecialchars($imgUrl); ?>" alt="">
                             <?php else: ?>
                                 <div class="no-img"><i class="bi bi-image"></i></div>
                             <?php endif; ?>
@@ -585,7 +137,6 @@ $categories = [1 => "Textbook", 2 => "Uniform", 3 => "PE Uniform", 4 => "Merchan
                                 <?php endif; ?>
                             </div>
 
-                          
                             <div class="card-actions">
                                 <a href="indexproduct.php?id=<?php echo $product['id']; ?>" class="btn-view">
                                     <i class="bi bi-eye"></i> View
@@ -616,6 +167,7 @@ $categories = [1 => "Textbook", 2 => "Uniform", 3 => "PE Uniform", 4 => "Merchan
 
         </div>
     </div>
+
     <!-- footer -->
     <?php include('includes/footer.php'); ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
